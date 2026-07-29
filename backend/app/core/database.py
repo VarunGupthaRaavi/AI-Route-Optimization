@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import settings
 from app.core.logging import logger
 
-# Configure Engine Kwargs (SQLite vs PostgreSQL connection pooling)
+# Configure Engine Kwargs (SQLite vs PostgreSQL PgBouncer connection pooling)
 engine_kwargs = {
     "echo": settings.DB_ECHO,
 }
@@ -20,6 +20,10 @@ if not settings.DATABASE_URL.startswith("sqlite"):
         "pool_timeout": settings.DB_POOL_TIMEOUT,
         "pool_recycle": settings.DB_POOL_RECYCLE,
         "pool_pre_ping": True,
+        "connect_args": {
+            "statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: ""
+        }
     })
 
 # Initialize SQLAlchemy 2.0 Async Engine

@@ -79,12 +79,17 @@ class Settings(BaseSettings):
         """
         Ensures the database connection URL uses the asyncpg driver for PostgreSQL or aiosqlite for SQLite.
         Converts 'postgres://' or 'postgresql://' prefixes to 'postgresql+asyncpg://'.
+        Strips invalid query parameters like '?pgbouncer=true' that asyncpg does not accept.
         """
         if isinstance(v, str):
-            if v.startswith("postgres://"):
-                return v.replace("postgres://", "postgresql+asyncpg://", 1)
-            elif v.startswith("postgresql://") and not v.startswith("postgresql+asyncpg://"):
-                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            v_clean = v.strip()
+            if "?" in v_clean:
+                v_clean = v_clean.split("?", 1)[0]
+            if v_clean.startswith("postgres://"):
+                return v_clean.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif v_clean.startswith("postgresql://") and not v_clean.startswith("postgresql+asyncpg://"):
+                return v_clean.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return v_clean
         return v
 
     DB_POOL_SIZE: int = Field(default=10, description="SQLAlchemy engine pool size")
