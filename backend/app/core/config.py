@@ -1,6 +1,6 @@
 from functools import lru_cache
 from typing import Any, List, Union
-from pydantic import Field, field_validator, ValidationInfo
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # CORS Settings
     CORS_ORIGINS: Union[List[str], str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173"],
+        default=["http://localhost:3000", "http://localhost:5173", "https://*.vercel.app"],
         description="Allowed CORS origin URLs"
     )
 
@@ -44,10 +44,22 @@ class Settings(BaseSettings):
             return v
         raise ValueError(f"Invalid CORS origins value: {v}")
 
-    # Database Configuration (Supabase PostgreSQL / Async Driver)
+    # Supabase & Database Configuration
     DATABASE_URL: str = Field(
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/routeai_db",
         description="Database connection string with async driver specification"
+    )
+    SUPABASE_URL: str = Field(
+        default="https://your-supabase-project.supabase.co",
+        description="Supabase Project API Endpoint URL"
+    )
+    SUPABASE_ANON_KEY: str = Field(
+        default="your-supabase-anon-key",
+        description="Supabase Anonymous API Key"
+    )
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(
+        default="your-supabase-service-role-key",
+        description="Supabase Service Role Key"
     )
 
     @field_validator("DATABASE_URL", mode="before")
@@ -93,5 +105,4 @@ def get_settings() -> Settings:
     return Settings()
 
 
-# Export default global settings instance for immediate module imports
 settings = get_settings()

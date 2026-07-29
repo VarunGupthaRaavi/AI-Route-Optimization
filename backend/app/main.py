@@ -10,6 +10,7 @@ from app.core.database import check_database_connection, engine
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger
 from app.middleware.request_id import RequestIDMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.timing import TimingMiddleware
 
 
@@ -19,7 +20,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     FastAPI Lifespan Context Manager handling application startup and shutdown lifecycle events.
     Verifies database connectivity on boot and cleans up resource pools on shutdown.
     """
-    # --- Startup Event Phase ---
     logger.info(f"Starting {settings.PROJECT_NAME} v{__version__} [{settings.ENVIRONMENT}]")
     db_ok = await check_database_connection()
     if db_ok:
@@ -27,9 +27,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         logger.warning("Database connection health check failed during startup sequence.")
 
-    yield  # Application accepts incoming traffic during this phase
+    yield
 
-    # --- Shutdown Event Phase ---
     logger.info("Shutting down application server and disposing database connection pool...")
     await engine.dispose()
     logger.info("Database engine pool disposed cleanly. Shutdown complete.")
@@ -49,7 +48,7 @@ def create_application() -> FastAPI:
         lifespan=lifespan
     )
 
-    # Configure CORS Middleware for cross-origin frontend requests (React/Vite)
+    # Configure CORS Middleware for cross-origin frontend requests
     if settings.CORS_ORIGINS:
         app.add_middleware(
             CORSMiddleware,
@@ -60,7 +59,8 @@ def create_application() -> FastAPI:
             expose_headers=["X-Request-ID", "X-Process-Time"]
         )
 
-    # Register Custom Custom ASGI Middlewares
+    # Register Custom ASGI Middlewares
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(TimingMiddleware)
     app.add_middleware(RequestIDMiddleware)
 
