@@ -55,40 +55,40 @@ class DatabaseException(AppException):
         )
 
 
+class ValidationException(AppException):
+    """
+    Raised when domain business rules input validation fails.
+    """
+    def __init__(self, message: str = "Domain validation failed.", details: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            error_code="BUSINESS_VALIDATION_ERROR",
+            details=details
+        )
+
+
 class AuthenticationException(AppException):
     """
-    Raised when authentication credentials are invalid or missing.
+    Raised when user authentication credentials are invalid or expired.
     """
-    def __init__(self, message: str = "Authentication credentials were invalid or missing.") -> None:
+    def __init__(self, message: str = "Authentication failed. Invalid or expired token.") -> None:
         super().__init__(
             message=message,
             status_code=status.HTTP_401_UNAUTHORIZED,
-            error_code="AUTHENTICATION_FAILED"
+            error_code="UNAUTHENTICATED"
         )
 
 
 class AuthorizationException(AppException):
     """
-    Raised when an authenticated principal lacks required permissions.
+    Raised when an authenticated user lacks required RBAC role permissions.
     """
-    def __init__(self, message: str = "User is not authorized to access this resource.") -> None:
+    def __init__(self, message: str = "Access denied. Insufficient permissions for this action.") -> None:
         super().__init__(
             message=message,
             status_code=status.HTTP_403_FORBIDDEN,
-            error_code="AUTHORIZATION_FAILED"
-        )
-
-
-class ValidationException(AppException):
-    """
-    Raised when input domain validation fails.
-    """
-    def __init__(self, message: str = "Validation failed.", details: Optional[Dict[str, Any]] = None) -> None:
-        super().__init__(
-            message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            error_code="VALIDATION_FAILED",
-            details=details
+            error_code="FORBIDDEN"
         )
 
 
@@ -158,13 +158,22 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         request_id = getattr(request.state, "request_id", "")
-        logger.info(f"Request validation error on {request.method} {request.url.path}")
+        formatted_errors = []
+        for err in exc.errors():
+            loc_parts = [str(x) for x in err.get("loc", []) if str(x) not in ("body", "query", "path")]
+            loc = " -> ".join(loc_parts)
+            msg = err.get("msg", "invalid value")
+            formatted_errors.append(f"[{loc}]: {msg}" if loc else msg)
+        
+        error_summary = "; ".join(formatted_errors) if formatted_errors else "Input validation failed for requested endpoint."
+        logger.warning(f"Request validation error on {request.method} {request.url.path}: {error_summary}")
+
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content=build_error_payload(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 error_code="REQUEST_VALIDATION_ERROR",
-                message="Input validation failed for requested endpoint.",
+                message=f"Validation failed: {error_summary}",
                 request_id=request_id,
                 details={"errors": exc.errors()}
             )
