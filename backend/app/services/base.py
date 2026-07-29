@@ -90,10 +90,5 @@ class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         Executes entity deletion. Raises EntityNotFoundException if missing.
         """
-        exists = await self.repository.exists(id)
-        if not exists:
-            raise EntityNotFoundException(
-                entity_name=self.repository.model.__name__,
-                entity_id=id
-            )
-        return await self.repository.delete(id, soft=soft)
+        entity = await self.get_by_id(id)
+        return await self.repository.delete(entity.id, soft=soft)

@@ -23,6 +23,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Retrieves a single record by its primary key ID.
         Filter out soft-deleted records if applicable.
         """
+        # pyrefly: ignore [missing-attribute]
         query = select(self.model).where(self.model.id == id)
         if hasattr(self.model, "is_deleted"):
             # pyrefly: ignore [missing-attribute]
@@ -30,6 +31,13 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def exists(self, id: Any) -> bool:
+        """
+        Checks whether a non-deleted record exists matching the primary key ID.
+        """
+        entity = await self.get_by_id(id)
+        return entity is not None
 
     async def get_multi(
         self,
@@ -58,6 +66,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         Counts total active non-deleted records matching optional filter criteria.
         """
+        # pyrefly: ignore [missing-attribute]
         query = select(func.count(self.model.id))
         if hasattr(self.model, "is_deleted"):
             # pyrefly: ignore [missing-attribute]
@@ -107,6 +116,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.session.add(db_obj)
         await self.session.flush()
         await self.session.refresh(db_obj)
+        # pyrefly: ignore [bad-return]
         return db_obj
 
     async def update(
