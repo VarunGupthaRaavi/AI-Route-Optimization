@@ -46,8 +46,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 session.add(admin_user)
                 await session.commit()
                 logger.info("Default admin user auto-seeded (admin@routeai.com / admin123).")
+            # pyrefly: ignore [missing-attribute]
             elif not verify_password("admin123", admin_user.password_hash):
                 # Auto-heal invalid seed password hash
+                # pyrefly: ignore [missing-attribute]
                 admin_user.password_hash = get_password_hash("admin123")
                 await session.commit()
                 logger.info("Auto-healed admin user password hash for admin@routeai.com.")

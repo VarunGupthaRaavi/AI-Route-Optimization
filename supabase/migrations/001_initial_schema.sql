@@ -15,10 +15,12 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'DISPATCHER',
+    role VARCHAR(50) NOT NULL DEFAULT 'CUSTOMER',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    last_login_at TIMESTAMPTZ,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -158,7 +160,17 @@ CREATE TABLE IF NOT EXISTS public.knowledge_chunks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Ensure missing columns are added if tables already exist in Supabase
+-- Ensure column names are aligned if table already exists
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash') THEN
+        ALTER TABLE public.users RENAME COLUMN password_hash TO hashed_password;
+    END IF;
+END $$;
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR(255);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
@@ -202,13 +214,14 @@ CREATE POLICY "Allow service role full access to knowledge_chunks" ON public.kno
 -- ===================================================================
 
 -- Default Admin User (Password: admin123 -> bcrypt hash)
-INSERT INTO public.users (id, email, password_hash, full_name, role, is_active, is_deleted)
+INSERT INTO public.users (id, email, hashed_password, full_name, role, is_active, is_verified, is_deleted)
 VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     'admin@routeai.com',
-    '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeg6Lruj3vjPGga31lW',
+    '$2b$12$C66IAyilIWN9WUIf3R5O0.8Fam0x7DEiwfzyePXDlyRs.pJ2t8uAC',
     'System Administrator',
     'ADMIN',
+    true,
     true,
     false
 ) ON CONFLICT (email) DO NOTHING;
