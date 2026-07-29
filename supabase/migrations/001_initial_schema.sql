@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     full_name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'DISPATCHER',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -33,6 +35,8 @@ CREATE TABLE IF NOT EXISTS public.customers (
     address TEXT,
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -46,6 +50,8 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
     volume_m3 DOUBLE PRECISION NOT NULL,
     fuel_type VARCHAR(50) NOT NULL DEFAULT 'DIESEL',
     status VARCHAR(50) NOT NULL DEFAULT 'IDLE',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -58,6 +64,8 @@ CREATE TABLE IF NOT EXISTS public.drivers (
     assigned_vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE',
     rating DOUBLE PRECISION DEFAULT 5.0,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -77,6 +85,8 @@ CREATE TABLE IF NOT EXISTS public.deliveries (
     volume_m3 DOUBLE PRECISION NOT NULL,
     priority VARCHAR(50) NOT NULL DEFAULT 'MEDIUM',
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -90,6 +100,8 @@ CREATE TABLE IF NOT EXISTS public.routes (
     status VARCHAR(50) NOT NULL DEFAULT 'PLANNED',
     total_distance_km DOUBLE PRECISION DEFAULT 0.0,
     estimated_duration_minutes DOUBLE PRECISION DEFAULT 0.0,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -100,6 +112,8 @@ CREATE TABLE IF NOT EXISTS public.route_stops (
     route_id UUID REFERENCES public.routes(id) ON DELETE CASCADE,
     delivery_id UUID REFERENCES public.deliveries(id) ON DELETE CASCADE,
     stop_sequence INT NOT NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -112,6 +126,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     message TEXT NOT NULL,
     type VARCHAR(50) NOT NULL DEFAULT 'INFO',
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -123,6 +139,8 @@ CREATE TABLE IF NOT EXISTS public.knowledge_documents (
     file_type VARCHAR(50) DEFAULT 'pdf',
     author VARCHAR(255) DEFAULT 'System',
     chunk_count INT DEFAULT 0,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -134,9 +152,23 @@ CREATE TABLE IF NOT EXISTS public.knowledge_chunks (
     chunk_index INT NOT NULL,
     content TEXT NOT NULL,
     embedding_vector JSONB,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure missing columns are added if tables already exist in Supabase
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.knowledge_documents ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.knowledge_chunks ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- ===================================================================
 -- 3. ROW LEVEL SECURITY (RLS) POLICIES
@@ -170,18 +202,19 @@ CREATE POLICY "Allow service role full access to knowledge_chunks" ON public.kno
 -- ===================================================================
 
 -- Default Admin User (Password: admin123 -> bcrypt hash)
-INSERT INTO public.users (id, email, password_hash, full_name, role, is_active)
+INSERT INTO public.users (id, email, password_hash, full_name, role, is_active, is_deleted)
 VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     'admin@routeai.com',
     '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeg6Lruj3vjPGga31lW',
     'System Administrator',
     'ADMIN',
-    true
+    true,
+    false
 ) ON CONFLICT (email) DO NOTHING;
 
--- Initial Customers (Valid RFC 4122 Hexadecimal UUIDs)
-INSERT INTO public.customers (id, name, company_name, email, phone, address, latitude, longitude)
+-- Initial Customers
+INSERT INTO public.customers (id, name, company_name, email, phone, address, latitude, longitude, is_deleted)
 VALUES 
 (
     '11111111-1111-4111-a111-111111111111',
@@ -191,7 +224,8 @@ VALUES
     '+1-555-0192',
     '742 Evergreen Terrace, Springfield',
     37.7749,
-    -122.4194
+    -122.4194,
+    false
 ),
 (
     '22222222-2222-4222-a222-222222222222',
@@ -201,11 +235,12 @@ VALUES
     '+1-555-0183',
     '100 Market St, San Francisco, CA',
     37.7893,
-    -122.4014
+    -122.4014,
+    false
 ) ON CONFLICT (id) DO NOTHING;
 
--- Initial Vehicles (Valid RFC 4122 Hexadecimal UUIDs)
-INSERT INTO public.vehicles (id, license_plate, vehicle_model, capacity_kg, volume_m3, fuel_type, status)
+-- Initial Vehicles
+INSERT INTO public.vehicles (id, license_plate, vehicle_model, capacity_kg, volume_m3, fuel_type, status, is_deleted)
 VALUES 
 (
     '33333333-3333-4333-a333-333333333333',
@@ -214,7 +249,8 @@ VALUES
     15000.0,
     45.0,
     'DIESEL',
-    'AVAILABLE'
+    'AVAILABLE',
+    false
 ),
 (
     '44444444-4444-4444-a444-444444444444',
@@ -223,11 +259,12 @@ VALUES
     3500.0,
     14.0,
     'ELECTRIC',
-    'IDLE'
+    'IDLE',
+    false
 ) ON CONFLICT (license_plate) DO NOTHING;
 
--- Initial Drivers (Valid RFC 4122 Hexadecimal UUIDs)
-INSERT INTO public.drivers (id, license_number, phone, assigned_vehicle_id, status, rating)
+-- Initial Drivers
+INSERT INTO public.drivers (id, license_number, phone, assigned_vehicle_id, status, rating, is_deleted)
 VALUES 
 (
     '55555555-5555-4555-a555-555555555555',
@@ -235,5 +272,6 @@ VALUES
     '+1-555-8831',
     '33333333-3333-4333-a333-333333333333',
     'AVAILABLE',
-    4.95
+    4.95,
+    false
 ) ON CONFLICT (license_number) DO NOTHING;
