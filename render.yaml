@@ -1,13 +1,16 @@
+# Render Blueprint Specification for RouteAI Enterprise Platform
+# https://render.com/docs/blueprint-spec
+
 services:
   # ----------------------------------------------------
-  # 1. Backend Web Service (FastAPI + AsyncPG / Supabase)
+  # 1. Backend Web Service (Python / FastAPI + Supabase)
   # ----------------------------------------------------
   - type: web
     name: routeai-backend
     env: python
-    region: singapore # or oregon / frankfurt
+    region: singapore # Change to your preferred region (e.g. oregon, frankfurt)
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
@@ -28,7 +31,7 @@ services:
         sync: false
 
   # ----------------------------------------------------
-  # 2. Frontend Static Site (React + Vite)
+  # 2. Frontend Web Application (React + Vite Static Site)
   # ----------------------------------------------------
   - type: web
     name: routeai-frontend
