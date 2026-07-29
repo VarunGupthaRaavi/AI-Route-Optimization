@@ -58,15 +58,10 @@ def create_application() -> FastAPI:
         lifespan=lifespan
     )
 
-    # Configure CORS Middleware for local and production frontend requests
-    origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["http://localhost:5173", "http://localhost:3000"]
-    if settings.DEBUG:
-        origins.extend(["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"])
-
+    # Enable Permissive CORS Middleware for local dev & production clients
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
-        allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+" if settings.DEBUG else None,
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
