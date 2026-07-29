@@ -1,6 +1,7 @@
 import uuid
 from typing import List, Optional
 from sqlalchemy import ForeignKey, Integer, String, Text, JSON
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
@@ -38,7 +39,10 @@ class KnowledgeChunk(BaseModel):
     __tablename__ = "knowledge_chunks"
 
     document_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=False, index=True
+        PG_UUID(as_uuid=True),
+        ForeignKey("knowledge_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
     )
     chunk_index: Mapped[int] = mapped_column(
         Integer, nullable=False, doc="Passage sequence index within document"

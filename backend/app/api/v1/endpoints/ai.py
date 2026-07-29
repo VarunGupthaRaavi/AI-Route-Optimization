@@ -132,6 +132,11 @@ async def upload_rag_document(
     request_id = getattr(request.state, "request_id", None)
     rag_service = RAGService(session=db)
     doc = await rag_service.ingest_document(payload)
+    
+    created_at_val = ""
+    if doc.created_at:
+        created_at_val = doc.created_at.isoformat() if hasattr(doc.created_at, "isoformat") else str(doc.created_at)
+
     return ResponseModel(
         success=True,
         data=RAGDocumentResponse(
@@ -139,7 +144,7 @@ async def upload_rag_document(
             title=doc.title,
             file_type=doc.file_type,
             chunk_count=doc.chunk_count,
-            created_at=doc.created_at.isoformat()
+            created_at=created_at_val
         ),
         message="Document ingested and vectorized into RAG knowledge base.",
         request_id=request_id
