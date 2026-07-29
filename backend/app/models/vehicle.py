@@ -12,6 +12,7 @@ class VehicleStatus(str, Enum):
     AVAILABLE = "AVAILABLE"
     IN_TRANSIT = "IN_TRANSIT"
     MAINTENANCE = "MAINTENANCE"
+    IDLE = "IDLE"
 
 
 class Vehicle(BaseModel):
@@ -40,7 +41,7 @@ class Vehicle(BaseModel):
         Float, default=500.0, nullable=False, doc="Maximum driving range in kilometers per full tank/charge"
     )
     status: Mapped[VehicleStatus] = mapped_column(
-        SQLEnum(VehicleStatus, name="vehiclestatus", native_enum=True),
+        SQLEnum(VehicleStatus, name="vehiclestatus", native_enum=False, length=50),
         default=VehicleStatus.AVAILABLE,
         nullable=False,
         index=True,

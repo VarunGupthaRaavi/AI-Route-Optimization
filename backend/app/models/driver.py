@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional
 from sqlalchemy import Enum as SQLEnum, Float, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 
 
@@ -14,6 +14,7 @@ class DriverStatus(str, Enum):
     IDLE = "IDLE"
     ON_ROUTE = "ON_ROUTE"
     OFF_DUTY = "OFF_DUTY"
+    AVAILABLE = "AVAILABLE"
 
 
 class Driver(BaseModel):
@@ -36,7 +37,7 @@ class Driver(BaseModel):
         String(50), nullable=False, doc="Driver contact phone number"
     )
     status: Mapped[DriverStatus] = mapped_column(
-        SQLEnum(DriverStatus, name="driverstatus", native_enum=True),
+        SQLEnum(DriverStatus, name="driverstatus", native_enum=False, length=50),
         default=DriverStatus.IDLE,
         nullable=False,
         index=True,

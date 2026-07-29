@@ -69,8 +69,8 @@ export const CustomersPage = () => {
       email: customer.email,
       phone: customer.phone,
       address: customer.address,
-      latitude: customer.latitude,
-      longitude: customer.longitude,
+      latitude: customer.latitude ?? 41.8781,
+      longitude: customer.longitude ?? -87.6298,
       notes: customer.notes || ''
     });
     setIsModalOpen(true);
@@ -79,10 +79,23 @@ export const CustomersPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const latVal = parseFloat(formData.latitude);
+      const lngVal = parseFloat(formData.longitude);
+      const payload = {
+        name: formData.name.trim(),
+        company_name: formData.company_name.trim() || null,
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
+        latitude: isNaN(latVal) ? 41.8781 : latVal,
+        longitude: isNaN(lngVal) ? -87.6298 : lngVal,
+        notes: formData.notes ? formData.notes.trim() : null
+      };
+
       if (editingId) {
-        await api.put(`/customers/${editingId}`, formData);
+        await api.put(`/customers/${editingId}`, payload);
       } else {
-        await api.post('/customers', formData);
+        await api.post('/customers', payload);
       }
       setIsModalOpen(false);
       fetchCustomers();
@@ -149,7 +162,7 @@ export const CustomersPage = () => {
       accessor: 'latitude',
       render: (row) => (
         <span className="text-xs font-mono text-slate-400 bg-slate-900/60 px-2 py-1 rounded border border-slate-800">
-          {row.latitude.toFixed(4)}, {row.longitude.toFixed(4)}
+          {(row.latitude ?? 41.8781).toFixed(4)}, {(row.longitude ?? -87.6298).toFixed(4)}
         </span>
       )
     },
@@ -279,9 +292,8 @@ export const CustomersPage = () => {
               <input
                 type="number"
                 step="any"
-                required
                 value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
                 className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -290,12 +302,22 @@ export const CustomersPage = () => {
               <input
                 type="number"
                 step="any"
-                required
                 value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
                 className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Notes / Instructions</label>
+            <textarea
+              rows={2}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Special loading instructions, dock numbers..."
+              className="w-full bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
           </div>
 
           <div className="pt-4 border-t border-slate-800 flex justify-end space-x-3">

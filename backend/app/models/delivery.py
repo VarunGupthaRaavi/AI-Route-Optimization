@@ -71,14 +71,14 @@ class Delivery(BaseModel):
         Float, default=0.1, nullable=False, doc="Package volume in cubic meters"
     )
     status: Mapped[DeliveryStatus] = mapped_column(
-        SQLEnum(DeliveryStatus, name="deliverystatus", native_enum=True),
+        SQLEnum(DeliveryStatus, name="deliverystatus", native_enum=False, length=50),
         default=DeliveryStatus.PENDING,
         nullable=False,
         index=True,
         doc="Current package delivery lifecycle status"
     )
     priority: Mapped[DeliveryPriority] = mapped_column(
-        SQLEnum(DeliveryPriority, name="deliverypriority", native_enum=True),
+        SQLEnum(DeliveryPriority, name="deliverypriority", native_enum=False, length=50),
         default=DeliveryPriority.MEDIUM,
         nullable=False,
         index=True,

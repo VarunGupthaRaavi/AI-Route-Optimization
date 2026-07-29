@@ -16,6 +16,7 @@ class RouteStatus(str, Enum):
     OPTIMIZED = "OPTIMIZED"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
+    PLANNED = "PLANNED"
 
 
 class Route(BaseModel):
@@ -43,7 +44,7 @@ class Route(BaseModel):
         doc="Assigned vehicle ID"
     )
     status: Mapped[RouteStatus] = mapped_column(
-        SQLEnum(RouteStatus, name="routestatus", native_enum=True),
+        SQLEnum(RouteStatus, name="routestatus", native_enum=False, length=50),
         default=RouteStatus.DRAFT,
         nullable=False,
         index=True,

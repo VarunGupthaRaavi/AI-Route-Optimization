@@ -41,7 +41,7 @@ class User(BaseModel):
         doc="User first and last name"
     )
     role: Mapped[UserRole] = mapped_column(
-        SQLEnum(UserRole, name="userrole", native_enum=True),
+        SQLEnum(UserRole, name="userrole", native_enum=False, length=50),
         default=UserRole.CUSTOMER,
         nullable=False,
         index=True,
