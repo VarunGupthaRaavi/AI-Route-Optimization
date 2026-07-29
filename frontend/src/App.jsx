@@ -2,9 +2,12 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AIChatCopilot } from './components/AIChatCopilot';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AIRouteOptimizerPage } from './pages/AIRouteOptimizerPage';
+import { KnowledgeBaseRAGPage } from './pages/KnowledgeBaseRAGPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { DriversPage } from './pages/DriversPage';
 import { VehiclesPage } from './pages/VehiclesPage';
@@ -25,6 +28,8 @@ export function App() {
           {/* Protected Application Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/ai-studio" element={<AIRouteOptimizerPage />} />
+            <Route path="/rag-console" element={<KnowledgeBaseRAGPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
@@ -37,6 +42,9 @@ export function App() {
           {/* Fallback Redirect */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+
+        {/* Global AI Copilot Assistant Widget */}
+        <AIChatCopilot />
       </AuthProvider>
     </Router>
   );

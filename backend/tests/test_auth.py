@@ -18,7 +18,7 @@ TestingSessionFactory = async_sessionmaker(
 )
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 async def setup_test_database():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

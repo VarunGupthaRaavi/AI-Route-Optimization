@@ -1,18 +1,15 @@
-from app.models.base import Base, BaseModel, SoftDeleteMixin, TimestampMixin, UUIDMixin
-from app.models.customer import Customer
-from app.models.delivery import Delivery, DeliveryPriority, DeliveryStatus
-from app.models.driver import Driver, DriverStatus
-from app.models.notification import Notification, NotificationType
-from app.models.route import Route, RouteStatus, RouteStop
+from app.models.base import BaseModel
 from app.models.user import User, UserRole
+from app.models.customer import Customer
 from app.models.vehicle import Vehicle, VehicleStatus
+from app.models.driver import Driver, DriverStatus
+from app.models.delivery import Delivery, DeliveryStatus, DeliveryPriority
+from app.models.route import Route, RouteStatus, RouteStop
+from app.models.notification import Notification, NotificationType
+from app.models.knowledge import KnowledgeDocument, KnowledgeChunk
 
 __all__ = [
-    "Base",
     "BaseModel",
-    "UUIDMixin",
-    "TimestampMixin",
-    "SoftDeleteMixin",
     "User",
     "UserRole",
     "Customer",
@@ -28,4 +25,6 @@ __all__ = [
     "RouteStop",
     "Notification",
     "NotificationType",
+    "KnowledgeDocument",
+    "KnowledgeChunk",
 ]

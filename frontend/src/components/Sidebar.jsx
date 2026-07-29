@@ -10,6 +10,8 @@ import {
   Bell,
   BarChart3,
   Route as RouteIcon,
+  Sparkles,
+  Database,
   LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +21,8 @@ export const Sidebar = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'AI Route Studio', path: '/ai-studio', icon: Sparkles },
+    { name: 'RAG Knowledge Base', path: '/rag-console', icon: Database },
     { name: 'Deliveries', path: '/deliveries', icon: Package },
     { name: 'Route Optimization', path: '/routes', icon: RouteIcon },
     { name: 'Customers', path: '/customers', icon: Users },

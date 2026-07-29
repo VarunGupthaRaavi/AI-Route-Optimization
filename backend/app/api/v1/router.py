@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    ai,
     analytics,
     auth,
     customers,
@@ -13,9 +14,12 @@ from app.api.v1.endpoints import (
 
 api_v1_router = APIRouter()
 
-# Core & System
+# Core & System Diagnostics
 api_v1_router.include_router(health.router, tags=["System Diagnostics"])
 api_v1_router.include_router(auth.router, prefix="/auth", tags=["Authentication & RBAC"])
+
+# AI & Machine Learning Intelligence Suite
+api_v1_router.include_router(ai.router, prefix="/ai", tags=["AI Copilot, RAG, Multi-Agent & Predictive ETA"])
 
 # Logistics Business Modules
 api_v1_router.include_router(customers.router, prefix="/customers", tags=["Customer Management"])
