@@ -1,26 +1,29 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 from app.core.config import settings
 from app.core.logging import logger
-
-# Password Hashing Context using Bcrypt algorithm
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
     """
     Hashes a plain text password using bcrypt salted hashing.
+    Truncates password input to 72 bytes per Bcrypt specification constraint.
     """
-    return pwd_context.hash(password)
+    pwd_bytes = password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt(rounds=12)
+    hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed_bytes.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verifies a plain text password against a stored hashed password digest.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    pwd_bytes = plain_password.encode("utf-8")[:72]
+    hashed_bytes = hashed_password.encode("utf-8")
+    return bcrypt.checkpw(pwd_bytes, hashed_bytes)
 
 
 def create_access_token(

@@ -1,14 +1,17 @@
-from typing import AsyncGenerator, Dict, Any
+import uuid
+from typing import AsyncGenerator, Dict, Any, List, Callable
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.core.database import get_async_db
-from app.core.exceptions import AuthenticationException
+from app.core.exceptions import AuthenticationException, AuthorizationException
 from app.core.security import decode_token
+from app.models.user import User, UserRole
+from app.repositories.user import UserRepository
 
-# Bearer Token Scheme for FastAPI OpenAPI documentation
+# Bearer Token Scheme for FastAPI OpenAPI Swagger documentation
 security_bearer = HTTPBearer(auto_error=False)
 
 
@@ -53,3 +56,44 @@ async def get_current_user_claims(
         raise AuthenticationException("JWT Access token has expired. Please refresh your session.")
     except jwt.PyJWTError:
         raise AuthenticationException("Could not validate JWT credentials signature.")
+
+
+async def get_current_user(
+    claims: Dict[str, Any] = Depends(get_current_user_claims),
+    db: AsyncSession = Depends(get_db_session)
+) -> User:
+    """
+    Dependency loading the active User database entity matching the authenticated JWT token subject.
+    """
+    user_id_str = claims.get("sub")
+    try:
+        user_id = uuid.UUID(user_id_str)
+    except (ValueError, TypeError):
+        raise AuthenticationException("Invalid user identifier in token payload.")
+
+    repo = UserRepository(session=db)
+    user = await repo.get_by_id(user_id)
+
+    if not user:
+        raise AuthenticationException("Authenticated user account no longer exists.")
+
+    if not user.is_active:
+        raise AuthenticationException("Authenticated user account has been disabled.")
+
+    return user
+
+
+def require_roles(*allowed_roles: UserRole) -> Callable[..., User]:
+    """
+    Dependency Factory for Role-Based Access Control (RBAC) authorization.
+    Restricts endpoint execution to users possessing one of the specified allowed roles.
+    """
+    async def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise AuthorizationException(
+                f"Access forbidden: Required role in {[r.value for r in allowed_roles]}, but user holds role '{current_user.role.value}'."
+            )
+        return current_user
+
+    # pyrefly: ignore [bad-return]
+    return role_checker

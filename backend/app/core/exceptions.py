@@ -86,7 +86,7 @@ class ValidationException(AppException):
     def __init__(self, message: str = "Validation failed.", details: Optional[Dict[str, Any]] = None) -> None:
         super().__init__(
             message=message,
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             error_code="VALIDATION_FAILED",
             details=details
         )
@@ -160,9 +160,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         request_id = getattr(request.state, "request_id", "")
         logger.info(f"Request validation error on {request.method} {request.url.path}")
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content=build_error_payload(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 error_code="REQUEST_VALIDATION_ERROR",
                 message="Input validation failed for requested endpoint.",
                 request_id=request_id,
