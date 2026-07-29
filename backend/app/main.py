@@ -3,13 +3,16 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
 from app import __version__
 from app.api.v1.router import api_v1_router
 from app.core.config import settings
-from app.core.database import check_database_connection, engine
+from app.core.database import check_database_connection, engine, AsyncSessionLocal
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger
+from app.core.security import get_password_hash
 from app.db.base import Base
+from app.models.user import User, UserRole
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.timing import TimingMiddleware
@@ -19,17 +22,32 @@ from app.middleware.timing import TimingMiddleware
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     FastAPI Lifespan Context Manager handling application startup and shutdown lifecycle events.
-    Verifies database connectivity on boot, auto-creates tables if needed, and disposes pools on shutdown.
+    Verifies database connectivity on boot, auto-creates tables, seeds default admin, and disposes pools on shutdown.
     """
     logger.info(f"Starting {settings.PROJECT_NAME} v{__version__} [{settings.ENVIRONMENT}]")
     
-    # Auto-create missing database tables on startup
+    # Auto-create missing database tables & seed admin user on startup
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database schema tables auto-verified and created.")
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(User).where(User.email == "admin@routeai.com"))
+            admin_user = result.scalar_one_or_none()
+            if not admin_user:
+                admin_user = User(
+                    email="admin@routeai.com",
+                    password_hash=get_password_hash("admin123"),
+                    full_name="System Administrator",
+                    role=UserRole.ADMIN.value,
+                    is_active=True
+                )
+                session.add(admin_user)
+                await session.commit()
+                logger.info("Default admin user auto-seeded (admin@routeai.com / admin123).")
     except Exception as e:
-        logger.warning(f"Database schema auto-creation encountered warning: {e}")
+        logger.warning(f"Database schema auto-creation encountered notice: {e}")
 
     db_ok = await check_database_connection()
     if db_ok:

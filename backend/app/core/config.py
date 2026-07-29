@@ -55,9 +55,9 @@ class Settings(BaseSettings):
             return [str(item) for item in v]
         return ["http://localhost:5173", "http://localhost:3000"]
 
-    # Supabase & Database Configuration
+    # Supabase & Database Configuration (Defaults to SQLite for instant local dev without local postgres daemon)
     DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/routeai_db",
+        default="sqlite+aiosqlite:///./routeai_local.db",
         description="Database connection string with async driver specification"
     )
     SUPABASE_URL: str = Field(
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_db_connection(cls, v: str) -> str:
         """
-        Ensures the database connection URL uses the asyncpg driver for SQLAlchemy 2.0.
+        Ensures the database connection URL uses the asyncpg driver for PostgreSQL or aiosqlite for SQLite.
         Converts 'postgres://' or 'postgresql://' prefixes to 'postgresql+asyncpg://'.
         """
         if isinstance(v, str):
