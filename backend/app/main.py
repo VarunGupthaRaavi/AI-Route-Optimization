@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.database import check_database_connection, engine, AsyncSessionLocal
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.db.base import Base
 from app.models.user import User, UserRole
 from app.middleware.request_id import RequestIDMiddleware
@@ -46,8 +46,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 session.add(admin_user)
                 await session.commit()
                 logger.info("Default admin user auto-seeded (admin@routeai.com / admin123).")
+            elif not verify_password("admin123", admin_user.password_hash):
+                # Auto-heal invalid seed password hash
+                admin_user.password_hash = get_password_hash("admin123")
+                await session.commit()
+                logger.info("Auto-healed admin user password hash for admin@routeai.com.")
     except Exception as e:
-        logger.warning(f"Database schema auto-creation encountered notice: {e}")
+        logger.warning(f"Database schema auto-creation notice: {e}")
 
     db_ok = await check_database_connection()
     if db_ok:

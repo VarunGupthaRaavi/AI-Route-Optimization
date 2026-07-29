@@ -24,10 +24,17 @@ get_password_hash = hash_password
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verifies a plain text password against a stored hashed password digest.
+    Safely handles malformed or legacy hashes without raising 500 server errors.
     """
-    pwd_bytes = plain_password.encode("utf-8")[:72]
-    hashed_bytes = hashed_password.encode("utf-8")
-    return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    if not plain_password or not hashed_password:
+        return False
+    try:
+        pwd_bytes = plain_password.encode("utf-8")[:72]
+        hashed_bytes = hashed_password.encode("utf-8")
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except (ValueError, Exception) as err:
+        logger.warning(f"Password verification failed due to invalid password hash format: {err}")
+        return False
 
 
 def create_access_token(
