@@ -1,4 +1,8 @@
 import os
+
+# Force local isolated SQLite DB for Pytest test suite execution
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_biz_temp.db"
+
 import pytest
 from unittest.mock import AsyncMock, patch
 from httpx import ASGITransport, AsyncClient
