@@ -180,11 +180,11 @@ VALUES (
     true
 ) ON CONFLICT (email) DO NOTHING;
 
--- Initial Customers
+-- Initial Customers (Valid RFC 4122 Hexadecimal UUIDs)
 INSERT INTO public.customers (id, name, company_name, email, phone, address, latitude, longitude)
 VALUES 
 (
-    'c1111111-1111-1111-1111-111111111111',
+    '11111111-1111-4111-a111-111111111111',
     'Acme Global Corp',
     'Acme Logistics',
     'contact@acme.com',
@@ -194,7 +194,7 @@ VALUES
     -122.4194
 ),
 (
-    'c2222222-2222-2222-2222-222222222222',
+    '22222222-2222-4222-a222-222222222222',
     'Apex Retailers Ltd',
     'Apex Supply',
     'info@apexretail.com',
@@ -204,11 +204,11 @@ VALUES
     -122.4014
 ) ON CONFLICT (id) DO NOTHING;
 
--- Initial Vehicles
+-- Initial Vehicles (Valid RFC 4122 Hexadecimal UUIDs)
 INSERT INTO public.vehicles (id, license_plate, vehicle_model, capacity_kg, volume_m3, fuel_type, status)
 VALUES 
 (
-    'v1111111-1111-1111-1111-111111111111',
+    '33333333-3333-4333-a333-333333333333',
     'TRK-9082',
     'Volvo FH16 Heavy Duty',
     15000.0,
@@ -217,7 +217,7 @@ VALUES
     'AVAILABLE'
 ),
 (
-    'v2222222-2222-2222-2222-222222222222',
+    '44444444-4444-4444-a444-444444444444',
     'VAN-4091',
     'Mercedes-Benz Sprinter EV',
     3500.0,
@@ -226,14 +226,14 @@ VALUES
     'IDLE'
 ) ON CONFLICT (license_plate) DO NOTHING;
 
--- Initial Drivers
+-- Initial Drivers (Valid RFC 4122 Hexadecimal UUIDs)
 INSERT INTO public.drivers (id, license_number, phone, assigned_vehicle_id, status, rating)
 VALUES 
 (
-    'd1111111-1111-1111-1111-111111111111',
+    '55555555-5555-4555-a555-555555555555',
     'DL-US-982104',
     '+1-555-8831',
-    'v1111111-1111-1111-1111-111111111111',
+    '33333333-3333-4333-a333-333333333333',
     'AVAILABLE',
     4.95
 ) ON CONFLICT (license_number) DO NOTHING;
