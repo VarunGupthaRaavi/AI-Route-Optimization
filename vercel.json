@@ -1,27 +1,29 @@
 {
-    "services": {
-        "frontend": {
-            "root": "frontend",
-            "framework": "vite"
-        },
-        "backend": {
-            "root": "backend"
-        }
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/v1/(.*)",
+      "destination": "/backend/app/main.py"
     },
-    "rewrites": [
-        {
-            "source": "/api(/.*)?",
-            "destination": {
-                "type": "service",
-                "service": "backend"
-            }
-        },
-        {
-            "source": "/(.*)",
-            "destination": {
-                "type": "service",
-                "service": "frontend"
-            }
-        }
-    ]
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "builds": [
+    {
+      "src": "backend/app/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ]
 }
