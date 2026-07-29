@@ -10,6 +10,7 @@ from app.models.notification import Notification  # noqa
 from app.models.route import Route, RouteStop  # noqa
 from app.models.user import User  # noqa
 from app.models.vehicle import Vehicle  # noqa
+from app.models.knowledge import KnowledgeDocument, KnowledgeChunk  # noqa
 
 __all__ = [
     "Base",
@@ -21,4 +22,6 @@ __all__ = [
     "Route",
     "RouteStop",
     "Notification",
+    "KnowledgeDocument",
+    "KnowledgeChunk",
 ]
