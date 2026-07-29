@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import select, text
 from app import __version__
 from app.api.v1.router import api_v1_router
 from app.core.config import settings
@@ -38,19 +38,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             if not admin_user:
                 admin_user = User(
                     email="admin@routeai.com",
-                    password_hash=get_password_hash("admin123"),
+                    hashed_password=get_password_hash("admin123"),
                     full_name="System Administrator",
-                    role=UserRole.ADMIN.value,
+                    role=UserRole.ADMIN,
                     is_active=True
                 )
                 session.add(admin_user)
                 await session.commit()
                 logger.info("Default admin user auto-seeded (admin@routeai.com / admin123).")
-            # pyrefly: ignore [missing-attribute]
-            elif not verify_password("admin123", admin_user.password_hash):
-                # Auto-heal invalid seed password hash
-                # pyrefly: ignore [missing-attribute]
-                admin_user.password_hash = get_password_hash("admin123")
+            elif not verify_password("admin123", admin_user.hashed_password):
+                admin_user.hashed_password = get_password_hash("admin123")
                 await session.commit()
                 logger.info("Auto-healed admin user password hash for admin@routeai.com.")
     except Exception as e:
