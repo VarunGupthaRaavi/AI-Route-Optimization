@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
     address TEXT,
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
+    notes TEXT,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -51,7 +52,10 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
     capacity_kg DOUBLE PRECISION NOT NULL,
     volume_m3 DOUBLE PRECISION NOT NULL,
     fuel_type VARCHAR(50) NOT NULL DEFAULT 'DIESEL',
-    status VARCHAR(50) NOT NULL DEFAULT 'IDLE',
+    max_range_km DOUBLE PRECISION NOT NULL DEFAULT 500.0,
+    status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE',
+    current_lat DOUBLE PRECISION,
+    current_lng DOUBLE PRECISION,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -61,10 +65,13 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
 -- Drivers Table
 CREATE TABLE IF NOT EXISTS public.drivers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     license_number VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(50) NOT NULL,
     assigned_vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE',
+    status VARCHAR(50) NOT NULL DEFAULT 'IDLE',
+    current_lat DOUBLE PRECISION,
+    current_lng DOUBLE PRECISION,
     rating DOUBLE PRECISION DEFAULT 5.0,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
@@ -87,6 +94,9 @@ CREATE TABLE IF NOT EXISTS public.deliveries (
     volume_m3 DOUBLE PRECISION NOT NULL,
     priority VARCHAR(50) NOT NULL DEFAULT 'MEDIUM',
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    scheduled_date TIMESTAMPTZ,
+    delivered_at TIMESTAMPTZ,
+    notes TEXT,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -99,9 +109,12 @@ CREATE TABLE IF NOT EXISTS public.routes (
     route_code VARCHAR(100) UNIQUE NOT NULL,
     driver_id UUID REFERENCES public.drivers(id) ON DELETE SET NULL,
     vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'PLANNED',
+    status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
     total_distance_km DOUBLE PRECISION DEFAULT 0.0,
-    estimated_duration_minutes DOUBLE PRECISION DEFAULT 0.0,
+    estimated_duration_minutes INT DEFAULT 0,
+    total_deliveries INT DEFAULT 0,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -114,6 +127,8 @@ CREATE TABLE IF NOT EXISTS public.route_stops (
     route_id UUID REFERENCES public.routes(id) ON DELETE CASCADE,
     delivery_id UUID REFERENCES public.deliveries(id) ON DELETE CASCADE,
     stop_sequence INT NOT NULL,
+    estimated_arrival TIMESTAMPTZ,
+    completed BOOLEAN DEFAULT FALSE,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -172,12 +187,12 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR(255);
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS notes TEXT, ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS max_range_km DOUBLE PRECISION DEFAULT 500.0, ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE SET NULL, ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS scheduled_date TIMESTAMPTZ, ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ, ADD COLUMN IF NOT EXISTS notes TEXT, ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS total_deliveries INT DEFAULT 0, ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ, ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ, ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS estimated_arrival TIMESTAMPTZ, ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.knowledge_documents ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.knowledge_chunks ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE, ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
@@ -227,7 +242,7 @@ VALUES (
 ) ON CONFLICT (email) DO NOTHING;
 
 -- Initial Customers
-INSERT INTO public.customers (id, name, company_name, email, phone, address, latitude, longitude, is_deleted)
+INSERT INTO public.customers (id, name, company_name, email, phone, address, latitude, longitude, notes, is_deleted)
 VALUES 
 (
     '11111111-1111-4111-a111-111111111111',
@@ -238,6 +253,7 @@ VALUES
     '742 Evergreen Terrace, Springfield',
     37.7749,
     -122.4194,
+    'Priority enterprise account',
     false
 ),
 (
@@ -249,11 +265,12 @@ VALUES
     '100 Market St, San Francisco, CA',
     37.7893,
     -122.4014,
+    'Dock loading only',
     false
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Initial Vehicles
-INSERT INTO public.vehicles (id, license_plate, vehicle_model, capacity_kg, volume_m3, fuel_type, status, is_deleted)
+INSERT INTO public.vehicles (id, license_plate, vehicle_model, capacity_kg, volume_m3, fuel_type, max_range_km, status, is_deleted)
 VALUES 
 (
     '33333333-3333-4333-a333-333333333333',
@@ -262,6 +279,7 @@ VALUES
     15000.0,
     45.0,
     'DIESEL',
+    800.0,
     'AVAILABLE',
     false
 ),
@@ -272,6 +290,7 @@ VALUES
     3500.0,
     14.0,
     'ELECTRIC',
+    350.0,
     'IDLE',
     false
 ) ON CONFLICT (license_plate) DO NOTHING;
