@@ -4,7 +4,7 @@ import { DataTable } from '../components/DataTable';
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
 import { api } from '../services/api';
-import { Plus, Edit2, Trash2, Package, MapPin, Calendar, Clock } from 'lucide-react';
+import { Plus, Trash2, Package, MapPin, Play, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 
 export const DeliveriesPage = () => {
   const [deliveries, setDeliveries] = useState([]);
@@ -81,6 +81,15 @@ export const DeliveriesPage = () => {
     setIsModalOpen(true);
   };
 
+  const handleStatusChange = async (deliveryId, newStatus) => {
+    try {
+      await api.put(`/deliveries/${deliveryId}`, { status: newStatus });
+      fetchDeliveries();
+    } catch (err) {
+      alert(err.message || 'Failed to update delivery status');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -153,12 +162,42 @@ export const DeliveriesPage = () => {
       )
     },
     {
-      header: 'Actions',
+      header: 'Admin Actions',
       accessor: 'id',
       render: (row) => (
         <div className="flex items-center space-x-2">
+          {row.status === 'PENDING' && (
+            <button
+              onClick={() => handleStatusChange(row.id, 'IN_TRANSIT')}
+              title="Start Delivery"
+              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-xs font-semibold flex items-center space-x-1"
+            >
+              <Play className="w-3 h-3 fill-emerald-400" />
+              <span>Start</span>
+            </button>
+          )}
+
+          {row.status === 'IN_TRANSIT' && (
+            <button
+              onClick={() => handleStatusChange(row.id, 'DELIVERED')}
+              title="Complete Delivery"
+              className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 transition-colors text-xs font-semibold flex items-center space-x-1"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Complete</span>
+            </button>
+          )}
+
+          {row.status === 'DELIVERED' && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center space-x-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Done</span>
+            </span>
+          )}
+
           <button
             onClick={() => handleDelete(row.id)}
+            title="Delete Order"
             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
@@ -172,7 +211,7 @@ export const DeliveriesPage = () => {
     <div className="flex-1 pb-12">
       <Header
         title="Delivery Order Management"
-        subtitle="Track package shipments, delivery locations, priorities, and scheduling"
+        subtitle="Track package shipments, start/complete deliveries, set priorities, and schedule dispatch"
       />
 
       <div className="p-8 max-w-7xl mx-auto space-y-6">
