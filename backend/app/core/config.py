@@ -1,4 +1,5 @@
 from functools import lru_cache
+import json
 from typing import Any, List, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -27,22 +28,32 @@ class Settings(BaseSettings):
     PORT: int = Field(default=8000, description="Bind port number")
 
     # CORS Settings
-    CORS_ORIGINS: Union[List[str], str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173", "https://*.vercel.app"],
+    CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
         description="Allowed CORS origin URLs"
     )
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Any) -> Union[List[str], str]:
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
         """
-        Parses comma-separated string origins or lists into a valid list of strings.
+        Parses JSON array strings or comma-separated strings into a valid list of origin strings.
         """
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(f"Invalid CORS origins value: {v}")
+        if isinstance(v, str):
+            v_str = v.strip()
+            if not v_str:
+                return ["http://localhost:5173", "http://localhost:3000"]
+            if v_str.startswith("[") and v_str.endswith("]"):
+                try:
+                    parsed = json.loads(v_str)
+                    if isinstance(parsed, list):
+                        return [str(item) for item in parsed]
+                except Exception:
+                    pass
+            return [i.strip() for i in v_str.split(",") if i.strip()]
+        elif isinstance(v, list):
+            return [str(item) for item in v]
+        return ["http://localhost:5173", "http://localhost:3000"]
 
     # Supabase & Database Configuration
     DATABASE_URL: str = Field(

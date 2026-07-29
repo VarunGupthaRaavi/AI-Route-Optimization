@@ -13,7 +13,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         response: Response = await call_next(request)
 
-        # 1. HTTP Strict Transport Security (HSTS) - Enforce HTTPS for 1 year
+        # 1. HTTP Strict Transport Security (HSTS)
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
 
         # 2. Prevent Clickjacking Attacks
@@ -28,7 +28,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # 5. Referrer Policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # 6. Content Security Policy (CSP)
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;"
+        # 6. Content Security Policy (CSP) - Allow local and remote connect sources
+        response.headers["Content-Security-Policy"] = "default-src 'self' http: https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http: https: wss: ws:;"
 
         return response
