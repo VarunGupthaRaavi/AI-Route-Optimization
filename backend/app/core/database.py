@@ -14,6 +14,7 @@ engine_kwargs = {
     "echo": settings.DB_ECHO,
 }
 if not settings.DATABASE_URL.startswith("sqlite"):
+    # pyrefly: ignore [no-matching-overload]
     engine_kwargs.update({
         "pool_size": settings.DB_POOL_SIZE,
         "max_overflow": settings.DB_MAX_OVERFLOW,

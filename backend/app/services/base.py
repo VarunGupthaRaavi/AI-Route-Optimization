@@ -91,4 +91,5 @@ class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Executes entity deletion. Raises EntityNotFoundException if missing.
         """
         entity = await self.get_by_id(id)
+        # pyrefly: ignore [missing-attribute]
         return await self.repository.delete(entity.id, soft=soft)

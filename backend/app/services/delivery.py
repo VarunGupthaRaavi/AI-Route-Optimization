@@ -17,6 +17,7 @@ class DeliveryService(BaseService[Delivery, DeliveryCreate, DeliveryUpdate]):
         self.delivery_repo = DeliveryRepository(session=session)
         super().__init__(repository=self.delivery_repo)
 
+    # pyrefly: ignore [bad-override]
     async def create(self, obj_in: DeliveryCreate) -> Delivery:
         if not obj_in.tracking_number:
             obj_in.tracking_number = f"TRK-{uuid.uuid4().hex[:8].upper()}"
