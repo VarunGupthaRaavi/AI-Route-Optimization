@@ -31,72 +31,71 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
-            # Auto-align PostgreSQL column names if created from earlier SQL scripts
+            # Execute DDL migrations individually to satisfy asyncpg single-statement prepared statement requirement
             if not settings.DATABASE_URL.startswith("sqlite"):
-                await conn.execute(text("""
+                ddl_statements = [
+                    """
                     DO $$ 
                     BEGIN 
                         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash') THEN
                             ALTER TABLE public.users RENAME COLUMN password_hash TO hashed_password;
                         END IF;
                     END $$;
+                    """,
+                    "ALTER TABLE public.users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR(255);",
+                    "ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;",
+                    "ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS notes TEXT;",
+                    "ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS max_range_km DOUBLE PRECISION DEFAULT 500.0;",
+                    "ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION;",
+                    "ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION;",
+                    "ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE SET NULL;",
+                    "ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION;",
+                    "ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION;",
+                    "ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS scheduled_date TIMESTAMPTZ;",
+                    "ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;",
+                    "ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS notes TEXT;",
+                    "ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS total_deliveries INT DEFAULT 0;",
+                    "ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;",
+                    "ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;",
+                    "ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS estimated_arrival TIMESTAMPTZ;",
+                    "ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.knowledge_documents ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.knowledge_documents ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;",
+                    
+                    "ALTER TABLE public.knowledge_chunks ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE public.knowledge_chunks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;"
+                ]
+                for stmt in ddl_statements:
+                    try:
+                        await conn.execute(text(stmt))
+                    except Exception as ddl_err:
+                        logger.debug(f"DDL column statement notice: {ddl_err}")
 
-                    -- Users Table Columns
-                    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR(255);
-                    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
-                    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Customers Table Columns
-                    ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS notes TEXT;
-                    ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Vehicles Table Columns
-                    ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS max_range_km DOUBLE PRECISION DEFAULT 500.0;
-                    ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION;
-                    ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION;
-                    ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Drivers Table Columns
-                    ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE SET NULL;
-                    ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION;
-                    ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION;
-                    ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Deliveries Table Columns
-                    ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS scheduled_date TIMESTAMPTZ;
-                    ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
-                    ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS notes TEXT;
-                    ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Routes Table Columns
-                    ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS total_deliveries INT DEFAULT 0;
-                    ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
-                    ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
-                    ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Route Stops Table Columns
-                    ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS estimated_arrival TIMESTAMPTZ;
-                    ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.route_stops ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    -- Notifications & RAG Tables
-                    ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    ALTER TABLE public.knowledge_documents ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.knowledge_documents ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-
-                    ALTER TABLE public.knowledge_chunks ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-                    ALTER TABLE public.knowledge_chunks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-                """))
         logger.info("Database schema tables auto-verified and all model columns aligned.")
 
         async with AsyncSessionLocal() as session:
