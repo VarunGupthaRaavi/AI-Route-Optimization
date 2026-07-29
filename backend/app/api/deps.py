@@ -87,11 +87,16 @@ def require_roles(*allowed_roles: UserRole) -> Callable[..., User]:
     """
     Dependency Factory for Role-Based Access Control (RBAC) authorization.
     Restricts endpoint execution to users possessing one of the specified allowed roles.
+    ADMIN role possesses superuser authorization across all endpoints.
     """
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in allowed_roles:
+        user_role_val = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+        allowed_vals = [r.value if isinstance(r, UserRole) else str(r) for r in allowed_roles]
+        
+        # ADMIN role possesses superuser authorization across all endpoints
+        if user_role_val != UserRole.ADMIN.value and user_role_val not in allowed_vals:
             raise AuthorizationException(
-                f"Access forbidden: Required role in {[r.value for r in allowed_roles]}, but user holds role '{current_user.role.value}'."
+                f"Access forbidden: Required role in {allowed_vals}, but user holds role '{user_role_val}'."
             )
         return current_user
 
