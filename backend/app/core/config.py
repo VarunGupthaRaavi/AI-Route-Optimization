@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # CORS Settings
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+        default=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "https://*.vercel.app"],
         description="Allowed CORS origin URLs"
     )
 
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             v_str = v.strip()
             if not v_str:
-                return ["http://localhost:5173", "http://localhost:3000"]
+                return ["http://localhost:5173", "http://localhost:3000", "https://*.vercel.app"]
             if v_str.startswith("[") and v_str.endswith("]"):
                 try:
                     parsed = json.loads(v_str)
@@ -53,23 +53,23 @@ class Settings(BaseSettings):
             return [i.strip() for i in v_str.split(",") if i.strip()]
         elif isinstance(v, list):
             return [str(item) for item in v]
-        return ["http://localhost:5173", "http://localhost:3000"]
+        return ["http://localhost:5173", "http://localhost:3000", "https://*.vercel.app"]
 
-    # Supabase & Database Configuration (Defaults to SQLite for instant local dev without local postgres daemon)
+    # Supabase & Database Configuration (Defaults to active Supabase Cloud PostgreSQL database)
     DATABASE_URL: str = Field(
-        default="sqlite+aiosqlite:///./routeai_local.db",
+        default="postgresql://postgres.oehendzrfyjyklppwkfv:Route_AI_Opti@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true",
         description="Database connection string with async driver specification"
     )
     SUPABASE_URL: str = Field(
-        default="https://your-supabase-project.supabase.co",
+        default="https://oehendzrfyjyklppwkfv.supabase.co",
         description="Supabase Project API Endpoint URL"
     )
     SUPABASE_ANON_KEY: str = Field(
-        default="your-supabase-anon-key",
+        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9laGVuZHpyZnlqeWtscHB3a2Z2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMTA1NjIsImV4cCI6MjEwMDg4NjU2Mn0.3qsfsqB2L6zCWpl6qE4B1I44vz7XcOoZYilesp-Tv8Q",
         description="Supabase Anonymous API Key"
     )
     SUPABASE_SERVICE_ROLE_KEY: str = Field(
-        default="your-supabase-service-role-key",
+        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9laGVuZHpyZnlqeWtscHB3a2Z2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTMxMDU2MiwiZXhwIjoyMTAwODg2NTYyfQ.bYRfQNrJOVwLST7NjD7L24eAJ8XWNmigT2yDzHGtjCc",
         description="Supabase Service Role Key"
     )
 
@@ -100,7 +100,7 @@ class Settings(BaseSettings):
 
     # Security & JWT Configuration
     JWT_SECRET_KEY: str = Field(
-        default="dev-jwt-secret-key-change-this-in-production-1234567890",
+        default="+w8zlOq7zv3DSy2kwVmjCPC1HQ6f7A52w/xIRffEZt3yVUK6kPJwlrBmxjUJLe/znRKK1NNOFE1yrw6gLxZkNA==",
         description="Secret key for signing JWT tokens"
     )
     JWT_ALGORITHM: str = Field(default="HS256", description="Cryptographic algorithm for JWT signature")
