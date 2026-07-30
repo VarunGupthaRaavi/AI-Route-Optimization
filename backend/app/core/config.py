@@ -69,7 +69,7 @@ class Settings(BaseSettings):
         description="Supabase Anonymous API Key"
     )
     SUPABASE_SERVICE_ROLE_KEY: str = Field(
-        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9laGVuZHpyZnlqeWtscHB3a2Z2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTMxMDU2MiwiZXhwIjoyMTAwODg2NTYyfQ.bYRfQNrJOVwLST7NjD7L24eAJ8XWNmigT2yDzHGtjCc",
+        default="yJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9laGVuZHpyZnlqeWtscHB3a2Z2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTMxMDU2MiwiZXhwIjoyMTAwODg2NTYyfQ.bYRfQNrJOVwLST7NjD7L24eAJ8XWNmigT2yDzHGtjCc",
         description="Supabase Service Role Key"
     )
 
