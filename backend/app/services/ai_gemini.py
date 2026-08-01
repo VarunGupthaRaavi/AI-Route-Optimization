@@ -85,6 +85,7 @@ class GeminiAIService:
                 response.raise_for_status()
                 data = response.json()
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
+                # pyrefly: ignore [no-any-return-implicit]
                 return text
         except Exception as e:
             logger.warning(f"Google Gemini API call failed: {e}. Falling back to simulation engine.")

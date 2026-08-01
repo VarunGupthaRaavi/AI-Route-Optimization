@@ -28,4 +28,5 @@ class NotificationRepository(BaseRepository[Notification, NotificationCreate, No
             Notification.is_read == False
         ).values(is_read=True)
         res = await self.session.execute(stmt)
+        # pyrefly: ignore [missing-attribute]
         return res.rowcount
