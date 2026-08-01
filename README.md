@@ -58,6 +58,11 @@ Modern enterprise logistics operations face constant unpredictable challenges: s
 
 ## 🏗️ System Architecture
 
+<p align="center">
+  <img src="docs/images/project_architecture_infographic.png" alt="AI Route Optimization Architecture Infographic" width="100%" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+<p align="center"><i>Interactive End-to-End System Workflow & Architecture Diagram</i></p>
+
 ```
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                               AI ROUTE OPTIMIZATION ARCHITECTURE                                  │
